@@ -20,13 +20,6 @@ except:
 # -------------------------
 # Helper functions
 # -------------------------
-def load_keras_model(path):
-    try:
-        model = load_model(path)
-        return model, None
-    except Exception as e:
-        return None, str(e)
-
 def preprocess_pil_image(pil_img, target_size=(224, 224)):
     if pil_img.mode != "RGB":
         pil_img = pil_img.convert("RGB")
@@ -86,7 +79,7 @@ def to_download_link(df, filename="predictions.csv"):
 # -------------------------
 st.sidebar.header("Settings")
 
-default_model = r"C:\Users\shant\Desktop\FL DR Final Review Project Demonstration\models\FedIP_MobileNetV2.h5"
+default_model = "models/FedIP_MobileNetV2.h5"  # ✅ Relative path for Streamlit Cloud
 model_path = st.sidebar.text_input("Model Path (.h5)", value=default_model)
 
 class_list = ["No_DR","Mild","Moderate","Severe","Proliferative_DR"]
@@ -95,11 +88,16 @@ class_names = st.sidebar.text_area("Class labels (comma-sep)", value=",".join(cl
 gradcam = st.sidebar.checkbox("Enable Grad-CAM", False)
 max_imgs = st.sidebar.slider("Max Images to Display", 1, 60, 30)
 
-model, error = load_keras_model(model_path)
-if model:
+@st.cache_resource
+def load_model_cached(path):
+    return load_model(path)
+
+try:
+    model = load_model_cached(model_path)
     st.sidebar.success("✅ Model Loaded")
-else:
-    st.sidebar.error(f"❌ Model Load Error: {error}")
+except Exception as e:
+    model = None
+    st.sidebar.error(f"❌ Model Load Error: {e}")
 
 # -------------------------
 # Main UI
@@ -164,4 +162,3 @@ if files and model:
 
 else:
     st.info("Upload images to start.")
-
